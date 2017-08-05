@@ -1,0 +1,83 @@
+#!/bin/bash
+
+NAMES=~/.shoved.names
+
+do_aliases() {
+    cat <<\!
+        d()  { eval "$(shoved chdir $1)"; }
+        dl() { eval "dirs -v"; }
+        dn() { eval "$(shoved name "$1" $(dirs))"; }
+        dp() { eval "$(shoved pushpop "$1")"; }
+        dx() { eval "$(shoved exch)"; }
+        da() { eval "$(shoved aliases)"; }
+!
+    for i in $(seq 0 9); do
+        echo "alias $i='d $i'"
+    done
+}
+
+do_chdir() {
+    if [[ $1 == "" ]]; then
+        echo 'echo "Missing directory index or name" >&2'
+    elif [[ $1 =~ ^[0-9]$ ]]; then
+        echo "pushd +$1 >/dev/null && dirs -v | sed -n '1s/0 *//p'"
+    elif [[ ! -e $NAMES ]]; then
+        echo "echo '$NAMES not found' >&2"
+    else
+        local target=$(awk "\$1 == \"$1\" { print \$2 }" <$NAMES)
+        if [[ $target == "" ]]; then
+            target=$1
+        fi
+        echo "cd $target >/dev/null && dirs -v | sed -n '1s/0 *//p'"
+    fi
+}
+
+do_exch() {
+    echo "pushd >/dev/null && dirs -v | sed -n '1s/0/=/p'"
+}
+
+do_pushpop() {
+    if [[ $1 == "" ]]; then
+        # normal popd
+        echo "popd >/dev/null && dirs -v | sed -n '1s/0 *//p'"
+    elif [[ ! -e $NAMES ]]; then
+        # no names file, normal pushd
+        echo "pushd $1 >/dev/null && dirs -v | sed -n '1s/0 *//p'"
+    else
+        local target=$(awk "\$1 == \"$1\" { print \$2 }" <$NAMES)
+        if [[ $target == "" ]]; then
+            target=$1
+        fi
+        echo "pushd $target >/dev/null && dirs -v | sed -n '1s/0 *//p'"
+    fi
+}
+
+do_name() {
+    if [[ $1 == "" ]]; then
+        if [[ -e $NAMES ]]; then
+            local maxlen=$(awk '{ x = x > length($1) ? x : length($1) } END { print x }' <$NAMES)
+            echo "awk '{ printf(\" %-${maxlen}s  %s\\n\", \$1, \$2) }' <$NAMES | sort -k1"
+        else
+            echo "echo '$NAMES not found' >&2"
+        fi
+    else
+        if [[ -e $NAMES ]]; then
+            local temp=$(mktemp /tmp/shoved.XXXXX)
+            trap "rm -f $temp" RETURN
+            cp $NAMES $temp
+            awk "\$1 != \"$1\"" <$temp >$NAMES
+        fi
+        echo "$1 $2" >>$NAMES
+        echo "echo ' $1  $2'"
+    fi
+}
+
+command="$1"
+shift
+
+if [[ $command =~ ^(aliases|chdir|exch|name|pushpop)$ ]]; then
+    do_$command "$@"
+else
+    echo "echo 'Invalid command: $command' >&2; false"
+fi
+
