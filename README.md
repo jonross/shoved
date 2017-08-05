@@ -2,7 +2,7 @@
 
 Copy `shoved` to a directory in your path (`make install` will put it in `~/bin`) and run
 
-    eval "$(shoved aliases)"
+    eval "$(shoved setup)"
 
 # Basics
 
@@ -79,3 +79,7 @@ You can set up short names for commonly used directories; these are understood b
      ulb    /usr/local/bin
 
 These are stored in `~/.shoved.names`, which is a plain text file you can edit.
+
+# Other
+
+`ds` is a shortcut for repeating `eval $(shoved setup)`

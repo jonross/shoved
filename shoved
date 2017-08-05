@@ -2,14 +2,14 @@
 
 NAMES=~/.shoved.names
 
-do_aliases() {
+do_setup() {
     cat <<\!
         d()  { eval "$(shoved chdir $1)"; }
         dl() { eval "dirs -v"; }
         dn() { eval "$(shoved name "$1" $(dirs))"; }
         dp() { eval "$(shoved pushpop "$1")"; }
         dx() { eval "$(shoved exch)"; }
-        da() { eval "$(shoved aliases)"; }
+        ds() { eval "$(shoved setup)"; }
 !
     for i in $(seq 0 9); do
         echo "alias $i='d $i'"
@@ -75,7 +75,7 @@ do_name() {
 command="$1"
 shift
 
-if [[ $command =~ ^(aliases|chdir|exch|name|pushpop)$ ]]; then
+if [[ $command =~ ^(chdir|exch|name|pushpop|setup)$ ]]; then
     do_$command "$@"
 else
     echo "echo 'Invalid command: $command' >&2; false"
