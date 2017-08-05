@@ -1,10 +1,16 @@
-# Setup
+# Motivation
+
+Less typing.
+
+# Usage
+
+## Setup
 
 Copy `shoved` to a directory in your path (`make install` will put it in `~/bin`) and run
 
     eval "$(shoved setup)"
 
-# Basics
+## Basics
 
 `dl` gives the directory list.  `dp DIR` does `pushd DIR`.  `dp` without args does `popd`.
 
@@ -55,7 +61,7 @@ Copy `shoved` to a directory in your path (`make install` will put it in `~/bin`
     % 1
      /etc
 
-# Directory shorcuts
+## Shorcuts
 
 You can set up short names for commonly used directories; these are understood by `d` and `dp`.
 `dn NAME` sets the short name for the current directory to NAME; `dn` displays the shortcuts.
@@ -80,6 +86,6 @@ You can set up short names for commonly used directories; these are understood b
 
 These are stored in `~/.shoved.names`, which is a plain text file you can edit.
 
-# Other
+## Other
 
-`ds` is a shortcut for repeating `eval $(shoved setup)`
+`ds` is a shortcut for `eval $(shoved setup)`
