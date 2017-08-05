@@ -1,6 +1,7 @@
 #!/bin/bash
 
 NAMES=~/.shoved.names
+VERSION=0.3.0
 
 do_setup() {
     cat <<\!
@@ -72,10 +73,14 @@ do_name() {
     fi
 }
 
+do_version() {
+    echo $VERSION
+}
+
 command="$1"
 shift
 
-if [[ $command =~ ^(chdir|exch|name|pushpop|setup)$ ]]; then
+if [[ $command =~ ^(chdir|exch|name|pushpop|setup|version)$ ]]; then
     do_$command "$@"
 else
     echo "echo 'Invalid command: $command' >&2; false"
