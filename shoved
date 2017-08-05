@@ -33,7 +33,7 @@ do_chdir() {
 }
 
 do_exch() {
-    echo "pushd >/dev/null && dirs -v | sed -n '1s/0/=/p'"
+    echo "pushd >/dev/null && dirs -v | sed -n '1s/0 *//p'"
 }
 
 do_pushpop() {
