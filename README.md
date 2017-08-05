@@ -89,3 +89,5 @@ These are stored in `~/.shoved.names`, which is a plain text file you can edit.
 ## Other
 
 `ds` is a shortcut for `eval $(shoved setup)`
+
+`shoved version` shows the script version
