@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 NAMES=~/.shoved.names
 VERSION=0.3.1
 
@@ -22,38 +24,21 @@ do_chdir() {
         echo 'echo "Missing directory index or name" >&2'
     elif [[ $1 =~ ^[0-9]$ ]]; then
         # d N does pushd +N
-        echo "pushd +$1 >/dev/null && dirs -v | sed -n '1s/0 *//p'"
-    elif [[ ! -e $NAMES ]]; then
-        # no names file, normal cd
-        echo "cd $1 >/dev/null"
+        _move "pushd +$1" ""
     else
-        local target=$(awk "\$1 == \"$1\" { print \$2 }" <$NAMES)
-        if [[ $target != "" ]]; then
-            echo "cd $target >/dev/null && dirs -v | sed -n '1s/0 *//p'"
-        else
-            # no shortcut, normal cd
-            echo "cd $1 >/dev/null"
-        fi
+        _move "cd %s" $1
     fi
 }
 
 do_exch() {
-    echo "pushd >/dev/null && dirs -v | sed -n '1s/0 *//p'"
+    _move "pushd" ""
 }
 
 do_pushpop() {
     if [[ $1 == "" ]]; then
-        # normal popd
-        echo "popd >/dev/null && dirs -v | sed -n '1s/0 *//p'"
-    elif [[ ! -e $NAMES ]]; then
-        # no names file, normal pushd
-        echo "pushd $1 >/dev/null && dirs -v | sed -n '1s/0 *//p'"
+        _move "popd" ""
     else
-        local target=$(awk "\$1 == \"$1\" { print \$2 }" <$NAMES)
-        if [[ $target == "" ]]; then
-            target=$1
-        fi
-        echo "pushd $target >/dev/null && dirs -v | sed -n '1s/0 *//p'"
+        _move "pushd %s" $1
     fi
 }
 
@@ -79,6 +64,39 @@ do_name() {
 
 do_version() {
     echo $VERSION
+}
+
+_chdir_or_pushd() {
+    local target="$(_resolve $2)"
+    if [[ $target == "" ]]; then
+        target="$2"
+    fi
+    echo "$1 $target >/dev/null && dirs -v | sed -n '1s/0 *//p'"
+}
+
+_move() {
+    local command
+    if [[ $2 != "" ]]; then
+        target="$(_resolve "$2")
+}
+        echo "popd >/dev/null && dirs -v | sed -n '1s/0 *//p'"
+
+_resolve() {
+    local target
+    if [[ ${SHOVED_RESOLVER:-} != "" ]]; then
+        target=$($SHOVED_RESOLVER resolve $1)
+        if [[ $? != 0 ]]; then
+            echo __ERROR__
+            return
+        elif [[ $target != "" ]]; then
+            echo "$target"
+            return
+        fi
+    fi
+    target=$(awk "\$1 == \"$1\" { print \$2; exit(0) }" <$NAMES)
+    if [[ $target != "" ]]; then
+        echo "$target"
+    fi
 }
 
 command="$1"
