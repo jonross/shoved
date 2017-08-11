@@ -66,25 +66,36 @@ do_version() {
     echo $VERSION
 }
 
-_chdir_or_pushd() {
-    local target="$(_resolve $2)"
-    if [[ $target == "" ]]; then
-        target="$2"
+do_enter() {
+    if [[ ${SHOVED_HELPER:-} != "" ]]; then
+        $SHOVED_HELPER enter
     fi
-    echo "$1 $target >/dev/null && dirs -v | sed -n '1s/0 *//p'"
 }
+
+# $1 = printf template to create cd/pushd/popd command
+# $2 = unresolved target directory, or none if not required
 
 _move() {
     local command
     if [[ $2 != "" ]]; then
-        target="$(_resolve "$2")
+        target="$(_resolve "$2")"
+        if [[ $target == __ERROR__ ]]; then
+            return
+        elif [[ $target == "" ]]; then
+            target="$2"
+        fi
+        command="$(printf "$1" "$target")"
+    else
+        command=$1
+    fi
+    # echo "$command >/dev/null && dirs -v | sed -n '1s/0 *//p'"
+    echo "$command >/dev/null && dirs | sed 's/^/ /' && eval \"\$(shoved enter)\""
 }
-        echo "popd >/dev/null && dirs -v | sed -n '1s/0 *//p'"
 
 _resolve() {
     local target
-    if [[ ${SHOVED_RESOLVER:-} != "" ]]; then
-        target=$($SHOVED_RESOLVER resolve $1)
+    if [[ ${SHOVED_HELPER:-} != "" ]]; then
+        target=$($SHOVED_HELPER resolve $1)
         if [[ $? != 0 ]]; then
             echo __ERROR__
             return
@@ -102,7 +113,7 @@ _resolve() {
 command="$1"
 shift
 
-if [[ $command =~ ^(chdir|exch|name|pushpop|setup|version)$ ]]; then
+if [[ $command =~ ^(chdir|enter|exch|name|pushpop|setup|version)$ ]]; then
     do_$command "$@"
 else
     echo "echo 'Invalid command: $command' >&2; false"
