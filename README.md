@@ -86,6 +86,21 @@ You can set up short names for commonly used directories; these are understood b
 
 These are stored in `~/.shoved.names`, which is a plain text file you can edit.
 
+## Custom callbacks
+
+You can inject your own logic by setting the `SHOVED_HELPER` environment variable to an executable
+script.  It will be invoked as
+
+    yourscript resolve DIR
+
+whenever you run `d DIR` or `dp DIR`.  It should output an actual resolved directory, or nothing
+if you want normal pathname resolution.  It will also be invoked as
+
+    yourscript enter DIR
+
+whenever your working directory changes.  In this case, you should output additional commands to
+be run before the directory change command returns.
+
 ## Other
 
 `ds` is a shortcut for `eval "$(shoved setup)"`
