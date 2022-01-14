@@ -1,6 +1,11 @@
-# Motivation
+# What is it?
 
-Less typing.
+`shoved` is a stronger `pushd`.  In addition to the features offered by `pushd` and `popd`, it has
+
+* Directory listing uses `dirs -v` by default, which is more readable
+* Aliases for commonly used directories
+* Custom alias substitution
+* Prologue and epilogue hooks
 
 # Usage
 

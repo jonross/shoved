@@ -5,12 +5,12 @@ set -euo pipefail
 NAMES=~/.shoved.names
 VERSION=0.3.1
 
-do_setup() {
+shoved::setup() {
     cat <<\!
-        d()  { eval "$(shoved chdir $1)"; }
+        d()  { eval "$(shoved chdir "${1:-}")"; }
         dl() { eval "dirs -v"; }
-        dn() { eval "$(shoved name "$1" $(dirs))"; }
-        dp() { eval "$(shoved pushpop "$1")"; }
+        dn() { eval "$(shoved name "${1:-}" $(dirs))"; }
+        dp() { eval "$(shoved pushpop "${1:-}")"; }
         dx() { eval "$(shoved exch)"; }
         ds() { eval "$(shoved setup)"; }
 !
@@ -19,9 +19,9 @@ do_setup() {
     done
 }
 
-do_chdir() {
+shoved::chdir() {
     if [[ $1 == "" ]]; then
-        echo 'echo "Missing directory index or name" >&2'
+        echo pwd
     elif [[ $1 =~ ^[0-9]$ ]]; then
         # d N does pushd +N
         _move "pushd +$1" ""
@@ -30,11 +30,11 @@ do_chdir() {
     fi
 }
 
-do_exch() {
+shoved::exch() {
     _move "pushd" ""
 }
 
-do_pushpop() {
+shoved::pushpop() {
     if [[ $1 == "" ]]; then
         _move "popd" ""
     else
@@ -42,7 +42,7 @@ do_pushpop() {
     fi
 }
 
-do_name() {
+shoved::name() {
     if [[ $1 == "" ]]; then
         if [[ -e $NAMES ]]; then
             local maxlen=$(awk '{ x = x > length($1) ? x : length($1) } END { print x }' <$NAMES)
@@ -62,11 +62,11 @@ do_name() {
     fi
 }
 
-do_version() {
+shoved::version() {
     echo $VERSION
 }
 
-do_enter() {
+shoved::enter() {
     if [[ ${SHOVED_HELPER:-} != "" ]]; then
         $SHOVED_HELPER enter
     fi
@@ -114,7 +114,7 @@ command="$1"
 shift
 
 if [[ $command =~ ^(chdir|enter|exch|name|pushpop|setup|version)$ ]]; then
-    do_$command "$@"
+    shoved::$command "$@"
 else
     echo "echo 'Invalid command: $command' >&2; false"
 fi
