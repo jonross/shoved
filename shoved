@@ -3,7 +3,11 @@
 set -euo pipefail
 
 NAMES=~/.shoved.names
-VERSION=0.3.1
+VERSION=0.4.0
+
+##########  external functions  ########################################################################################
+
+# Output alias definitions for shoved commands
 
 shoved::setup() {
     cat <<\!
@@ -19,28 +23,45 @@ shoved::setup() {
     done
 }
 
+# Output commands to change directories, or print the working directory
+#
+#   $1 = optional destination or alias
+
 shoved::chdir() {
     if [[ $1 == "" ]]; then
-        echo pwd
-    elif [[ $1 =~ ^[0-9]$ ]]; then
+        set -- $HOME
+    fi
+    if [[ $1 =~ ^[0-9]$ ]]; then
         # d N does pushd +N
-        _move "pushd +$1" ""
+        shoved::_goto "pushd +$1" ""
     else
-        _move "cd %s" $1
+        shoved::_goto "cd %s" $1
     fi
 }
 
+# Output commands to exchange the top two directories in the stack
+
 shoved::exch() {
-    _move "pushd" ""
+    shoved::_goto "pushd" ""
 }
+
+# Output commands to pushd to another directory (if specified)
+# or pop the directory stack (if not specified)
+#
+#   $1 = optional destination or alias
 
 shoved::pushpop() {
     if [[ $1 == "" ]]; then
-        _move "popd" ""
+        shoved::_goto "popd" ""
     else
-        _move "pushd %s" $1
+        shoved::_goto "pushd %s" $1
     fi
 }
+
+# Output commands to define a new alias (if specified) to the working directory,
+# or list all the aliases (if not specified)
+#
+#   $1 = optional alias
 
 shoved::name() {
     if [[ $1 == "" ]]; then
@@ -62,58 +83,80 @@ shoved::name() {
     fi
 }
 
+# Show the installed version of shoved
+
 shoved::version() {
     echo $VERSION
 }
 
-shoved::enter() {
+##########  internal functions  ########################################################################################
+
+# Run a user hook, if the helper script is set
+#
+#   $1 = hook name
+#   $2.. = optional args
+
+shoved::_hook() {
     if [[ ${SHOVED_HELPER:-} != "" ]]; then
-        $SHOVED_HELPER enter
+        if [[ -e $SHOVED_HELPER ]]; then
+            $SHOVED_HELPER $1
+        else
+            echo "SHOVED_HELPER is set to $SHOVED_HELPER, but the file can't be opened" >&2
+        fi
     fi
 }
 
-# $1 = printf template to create cd/pushd/popd command
-# $2 = unresolved target directory, or none if not required
+# Output a command to actually move to the target directory and run user hooks
+#
+#   $1 = printf template to create cd/pushd/popd command
+#   $2 = unresolved target directory, or none if not required
 
-_move() {
+shoved::_goto() {
     local command
     if [[ $2 != "" ]]; then
-        target="$(_resolve "$2")"
-        if [[ $target == __ERROR__ ]]; then
-            return
-        elif [[ $target == "" ]]; then
+        if ! target="$(shoved::_resolve "$2")"; then
+            # resolve failed, use as-is
             target="$2"
         fi
         command="$(printf "$1" "$target")"
     else
         command=$1
     fi
-    # echo "$command >/dev/null && dirs -v | sed -n '1s/0 *//p'"
-    echo "$command >/dev/null && dirs | sed 's/^/ /' && eval \"\$(shoved enter)\""
+    echo "
+        $command >/dev/null && \
+        dirs -v | sed -n '1s/^ *[0-9]* */ /p' && \
+        eval \"\$(shoved _hook enter)\"
+    "
 }
 
-_resolve() {
-    local target
-    if [[ ${SHOVED_HELPER:-} != "" ]]; then
-        target=$($SHOVED_HELPER resolve $1)
-        if [[ $? != 0 ]]; then
-            echo __ERROR__
-            return
-        elif [[ $target != "" ]]; then
-            echo "$target"
-            return
-        fi
-    fi
-    target=$(awk "\$1 == \"$1\" { print \$2; exit(0) }" <$NAMES)
-    if [[ $target != "" ]]; then
-        echo "$target"
+# Resolve a directory alias, or if no alias, just output the directory
+#
+#   $1 = destination directory or alias
+
+shoved::_resolve() {
+    local dest="$1"
+    local actual
+    if ! actual=$(shoved::_hook resolve $dest); then
+        # user hook failed, use as-is
+        echo "$dest"
+    elif [[ $actual != "" ]]; then
+        # user hook resolved an alias
+        echo "$actual"
+    elif [[ ! -e $NAMES ]]; then
+        # no aliases file
+        echo "$dest"
+    elif ! awk -v ex=0 "\$1 == \"$dest\" { print \$2; ex = 0 } END { exit ex }" <$NAMES; then
+        # not found in aliases file
+        echo "$dest"
     fi
 }
+
+########################################################################################################################
 
 command="$1"
 shift
 
-if [[ $command =~ ^(chdir|enter|exch|name|pushpop|setup|version)$ ]]; then
+if [[ $command =~ ^(chdir|exch|name|pushpop|setup|version|_hook)$ ]]; then
     shoved::$command "$@"
 else
     echo "echo 'Invalid command: $command' >&2; false"
